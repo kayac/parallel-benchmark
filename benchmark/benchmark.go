@@ -10,14 +10,17 @@ import (
 	"time"
 )
 
+// set true if you want to output debug logs
 var Debug = false
 
+// signals for trapping while benchmark
 var TrapSignals = []os.Signal{
 	syscall.SIGHUP,
 	syscall.SIGINT,
 	syscall.SIGTERM,
 	syscall.SIGQUIT}
 
+// Runner ... benchmark runner object
 type Runner struct {
 	Setup       func(*Worker)
 	Teardown    func(*Worker)
@@ -26,11 +29,13 @@ type Runner struct {
 	Concurrency int
 }
 
+// Worker ... benchmark worker object
 type Worker struct {
-	Id int
+	ID int
 	Stash  map[string]interface{}
 }
 
+// Result ... benchmark result
 type Result struct {
 	Score   int
 	Elapsed time.Duration
@@ -42,6 +47,7 @@ func debug (s string, v ...interface{}) {
 	}
 }
 
+// Run benchmark suite
 func (r *Runner) Run() *Result {
 	c := r.Concurrency
 	log.Printf("starting benchmark: concurrency: %d, time: %s, GOMAXPROCS: %d", c, r.Duration, runtime.GOMAXPROCS(0))
@@ -60,7 +66,7 @@ func (r *Runner) Run() *Result {
 			defer wg.Done()
 			score := 0
 			worker := &Worker{
-				Id: n,
+				ID: n,
 				Stash: make(map[string]interface{}),
 			}
 			if r.Setup != nil {
@@ -118,7 +124,7 @@ func (r *Runner) Run() *Result {
 	// notify "stop" to workers
 	close(stopCh)
 
-	// collect score from workers
+	// collect scores from workers
 	totalScore := 0
 	for i := 0; i < c; i++ {
 		totalScore += <-scoreCh
