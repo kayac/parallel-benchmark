@@ -14,9 +14,6 @@ func main() {
 		log.Panicf("invalid number", os.Args[1])
 	}
 	runner := &benchmark.Runner{
-		Teardown: func(w *benchmark.Worker) {
-			time.Sleep(time.Duration(1)*time.Second)
-		},
 		Benchmark: func(w *benchmark.Worker) int {
 			fib(n)
 			return 1
