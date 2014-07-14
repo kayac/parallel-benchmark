@@ -65,6 +65,12 @@ func RunFunc(benchmarkFunc func() int, duration time.Duration, c int) *Result {
 
 // Run benchmark by workers
 func Run(workers []Worker, duration time.Duration) *Result {
+	if os.Getenv("DEBUG") != "" {
+		Debug = true
+	} else {
+		Debug = false
+	}
+
 	c := len(workers)
 	log.Printf("starting benchmark: concurrency: %d, time: %s, GOMAXPROCS: %d", c, duration, runtime.GOMAXPROCS(0))
 	startCh := make(chan bool, c)
