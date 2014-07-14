@@ -54,7 +54,7 @@ func debug(s string, v ...interface{}) {
 	}
 }
 
-// Run benchmark by function
+// RunFunc ... benchmark by function
 func RunFunc(benchmarkFunc func() int, duration time.Duration, c int) *Result {
 	workers := make([]Worker, c)
 	for i := 0; i < c; i++ {
@@ -63,14 +63,9 @@ func RunFunc(benchmarkFunc func() int, duration time.Duration, c int) *Result {
 	return Run(workers, duration)
 }
 
-// Run benchmark by workers
+// Run ... benchmark by workers
 func Run(workers []Worker, duration time.Duration) *Result {
-	if os.Getenv("DEBUG") != "" {
-		Debug = true
-	} else {
-		Debug = false
-	}
-
+	Debug = os.Getenv("DEBUG") != ""
 	c := len(workers)
 	log.Printf("starting benchmark: concurrency: %d, time: %s, GOMAXPROCS: %d", c, duration, runtime.GOMAXPROCS(0))
 	startCh := make(chan bool, c)
