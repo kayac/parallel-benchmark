@@ -20,19 +20,26 @@ var TrapSignals = []os.Signal{
 	syscall.SIGTERM,
 	syscall.SIGQUIT}
 
-// Runner ... benchmark runner object
-type Runner struct {
-	Setup       func(*Worker)
-	Teardown    func(*Worker)
-	Benchmark   func(*Worker) int
-	Duration    time.Duration
-	Concurrency int
+// Worker ... benchmark worker interface
+type Worker interface {
+	Setup()
+	Process() int
+	Teardown()
 }
 
-// Worker ... benchmark worker object
-type Worker struct {
+type funcWorker struct {
 	ID int
-	Stash  map[string]interface{}
+	benchmarkFunc func() int
+}
+
+func (w *funcWorker) Setup() {
+}
+
+func (w *funcWorker) Process() (subscore int) {
+	return w.benchmarkFunc()
+}
+
+func (w *funcWorker) Teardown() {
 }
 
 // Result ... benchmark result
@@ -41,17 +48,25 @@ type Result struct {
 	Elapsed time.Duration
 }
 
-func debug (s string, v ...interface{}) {
+func debug(s string, v ...interface{}) {
 	if Debug {
 		log.Printf(s, v...)
 	}
 }
 
-// Run benchmark suite
-func (r *Runner) Run() *Result {
-	c := r.Concurrency
-	log.Printf("starting benchmark: concurrency: %d, time: %s, GOMAXPROCS: %d", c, r.Duration, runtime.GOMAXPROCS(0))
+// Run benchmark by function
+func RunFunc(benchmarkFunc func() int, duration time.Duration, c int) *Result {
+	workers := make([]Worker, c)
+	for i := 0; i < c; i++ {
+		workers[i] = &funcWorker{ID: i, benchmarkFunc: benchmarkFunc}
+	}
+	return Run(workers, duration)
+}
 
+// Run benchmark by workers
+func Run(workers []Worker, duration time.Duration) *Result {
+	c := len(workers)
+	log.Printf("starting benchmark: concurrency: %d, time: %s, GOMAXPROCS: %d", c, duration, runtime.GOMAXPROCS(0))
 	startCh := make(chan bool, c)
 	readyCh := make(chan bool, c)
 	stopCh := make(chan bool, c)
@@ -59,23 +74,16 @@ func (r *Runner) Run() *Result {
 	var wg sync.WaitGroup
 
 	// spawn worker goroutines
-	for i := 0; i < c; i++ {
-		debug("spwan worker[%d]", i);
-		go func(n int) {
+	for i, w := range workers {
+		debug("spwan worker[%d]", i)
+		go func(n int, worker Worker) {
 			wg.Add(1)
 			defer wg.Done()
 			score := 0
-			worker := &Worker{
-				ID: n,
-				Stash: make(map[string]interface{}),
-			}
-			if r.Setup != nil {
-				debug("worker[%d] Setup()", n)
-				r.Setup(worker)
-			}
+			worker.Setup()
 			readyCh <- true // ready of worker:n
 			<-startCh       // notified go benchmark from Runner
-			debug("worker[%d] starting Benchmark()", n);
+			debug("worker[%d] starting Benchmark()", n)
 		BENCH:
 			for {
 				select {
@@ -83,20 +91,17 @@ func (r *Runner) Run() *Result {
 					scoreCh <- score
 					break BENCH
 				default:
-					score += r.Benchmark(worker)
+					score += worker.Process()
 				}
 			}
-			debug("worker[%d] done Benchmark() score: %d", n, score);
-			if r.Teardown != nil {
-				debug("worker[%d] Teardown()", n)
-				r.Teardown(worker)
-			}
+			debug("worker[%d] done Benchmark() score: %d", n, score)
+			worker.Teardown()
 			debug("worker[%d] exit", n)
-		}(i)
+		}(i, w)
 	}
 
 	// wait for ready of workres
-	debug("waiting for all workers finish Setup()");
+	debug("waiting for all workers finish Setup()")
 	for i := 0; i < c; i++ {
 		<-readyCh
 	}
@@ -114,10 +119,11 @@ func (r *Runner) Run() *Result {
 		case syscall.Signal:
 			log.Printf("Got signal: %s(%d)", sig, sig)
 		default:
-			debug("timed out")
+			log.Printf("interrupted %s", s)
 			break
 		}
-	case <-time.After(r.Duration):
+	case <-time.After(duration):
+		debug("timed out")
 		break
 	}
 
@@ -131,8 +137,8 @@ func (r *Runner) Run() *Result {
 	}
 	end := time.Now()
 	elapsed := end.Sub(start)
-	log.Printf("done benchmark: score %d, elapsed %s = %f / sec\n", totalScore, elapsed, float64(totalScore) / float64(elapsed) * float64(time.Second))
+	log.Printf("done benchmark: score %d, elapsed %s = %f / sec\n", totalScore, elapsed, float64(totalScore)/float64(elapsed)*float64(time.Second))
 
 	wg.Wait()
-	return &Result{ Score: totalScore, Elapsed: elapsed }
+	return &Result{Score: totalScore, Elapsed: elapsed}
 }
