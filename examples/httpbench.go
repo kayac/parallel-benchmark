@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"github.com/fujiwara/parallel-benchmark/benchmark"
+	"github.com/kayac/parallel-benchmark/benchmark"
 	"io/ioutil"
 	"log"
 	"net/http"

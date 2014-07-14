@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/fujiwara/parallel-benchmark/benchmark"
+	"github.com/kayac/parallel-benchmark/benchmark"
 	"log"
 	"os"
 	"strconv"

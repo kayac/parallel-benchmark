@@ -11,7 +11,7 @@ Functional interface.
 
 ```go
 import (
-	"github.com/fujiwara/parallel-benchmark/benchmark"
+	"github.com/kayac/parallel-benchmark/benchmark"
 )
 
 func main() {
@@ -82,7 +82,7 @@ $ GOMAXPROCS=4 go run examples/fib.go 30
 package main
 
 import (
-	"github.com/fujiwara/parallel-benchmark/benchmark"
+	"github.com/kayac/parallel-benchmark/benchmark"
 	"log"
 	"os"
 	"strconv"
@@ -130,7 +130,7 @@ package main
 
 import (
 	"flag"
-	"github.com/fujiwara/parallel-benchmark/benchmark"
+	"github.com/kayac/parallel-benchmark/benchmark"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -183,7 +183,7 @@ func main() {
 Author
 ------
 
-Fujiwara Shunichiro <fujiwara.shunichiro@gmail.com>
+Fujiwara Shunichiro <kayac.shunichiro@gmail.com>
 
 LICENCE
 -------
