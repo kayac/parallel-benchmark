@@ -17,8 +17,8 @@ import (
 func main() {
 	benchmark.RunFunc(
 		func() (subscore int) {
-		// Your code for benchmarking
-			return 1  // return sub-score by executed once
+			// Your code for benchmarking
+			return 1  // return sub-score at executed once
 		},
 		time.Duration(3) * time.Second, // duration of benchmarking
 		10, // number of parallel goroutines
