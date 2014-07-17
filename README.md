@@ -59,7 +59,7 @@ Example of fibonacci benchmark
 ------
 
 * A example of calculate `fib(30)` in parallel 10 goroutines.
-* `fib(30)` calculated at once then score = 1.
+* `fib(30)` is calculated once, then score increases 1.
 
 ```
 $ go run examples/fib.go 30
