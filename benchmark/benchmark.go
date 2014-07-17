@@ -10,8 +10,7 @@ import (
 	"time"
 )
 
-// set true if you want to output debug logs
-var Debug = false
+var debug = false
 
 // signals for trapping while benchmark
 var TrapSignals = []os.Signal{
@@ -48,8 +47,8 @@ type Result struct {
 	Elapsed time.Duration
 }
 
-func debug(s string, v ...interface{}) {
-	if Debug {
+func debugLog(s string, v ...interface{}) {
+	if debug {
 		log.Printf(s, v...)
 	}
 }
@@ -65,7 +64,7 @@ func RunFunc(benchmarkFunc func() int, duration time.Duration, c int) *Result {
 
 // Run ... benchmark by workers
 func Run(workers []Worker, duration time.Duration) *Result {
-	Debug = os.Getenv("DEBUG") != ""
+	debug = os.Getenv("DEBUG") != ""
 	c := len(workers)
 	log.Printf("starting benchmark: concurrency: %d, time: %s, GOMAXPROCS: %d", c, duration, runtime.GOMAXPROCS(0))
 	startCh := make(chan bool, c)
@@ -76,7 +75,7 @@ func Run(workers []Worker, duration time.Duration) *Result {
 
 	// spawn worker goroutines
 	for i, w := range workers {
-		debug("spwan worker[%d]", i)
+		debugLog("spwan worker[%d]", i)
 		go func(n int, worker Worker) {
 			wg.Add(1)
 			defer wg.Done()
@@ -84,7 +83,7 @@ func Run(workers []Worker, duration time.Duration) *Result {
 			worker.Setup()
 			readyCh <- true // ready of worker:n
 			<-startCh       // notified go benchmark from Runner
-			debug("worker[%d] starting Benchmark()", n)
+			debugLog("worker[%d] starting Benchmark()", n)
 		BENCH:
 			for {
 				select {
@@ -95,14 +94,14 @@ func Run(workers []Worker, duration time.Duration) *Result {
 					score += worker.Process()
 				}
 			}
-			debug("worker[%d] done Benchmark() score: %d", n, score)
+			debugLog("worker[%d] done Benchmark() score: %d", n, score)
 			worker.Teardown()
-			debug("worker[%d] exit", n)
+			debugLog("worker[%d] exit", n)
 		}(i, w)
 	}
 
 	// wait for ready of workres
-	debug("waiting for all workers finish Setup()")
+	debugLog("waiting for all workers finish Setup()")
 	for i := 0; i < c; i++ {
 		<-readyCh
 	}
@@ -124,7 +123,7 @@ func Run(workers []Worker, duration time.Duration) *Result {
 			break
 		}
 	case <-time.After(duration):
-		debug("timed out")
+		debugLog("timed out")
 		break
 	}
 
