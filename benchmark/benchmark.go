@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 )
@@ -27,7 +28,7 @@ type Worker interface {
 }
 
 type funcWorker struct {
-	ID int
+	ID            int
 	benchmarkFunc func() int
 }
 
@@ -69,7 +70,7 @@ func Run(workers []Worker, duration time.Duration) *Result {
 	log.Printf("starting benchmark: concurrency: %d, time: %s, GOMAXPROCS: %d", c, duration, runtime.GOMAXPROCS(0))
 	startCh := make(chan bool, c)
 	readyCh := make(chan bool, c)
-	stopCh := make(chan bool, c)
+	var stopFlag int32
 	scoreCh := make(chan int, c)
 	var wg sync.WaitGroup
 
@@ -84,16 +85,10 @@ func Run(workers []Worker, duration time.Duration) *Result {
 			readyCh <- true // ready of worker:n
 			<-startCh       // notified go benchmark from Runner
 			debugLog("worker[%d] starting Benchmark()", n)
-		BENCH:
-			for {
-				select {
-				case <-stopCh:
-					scoreCh <- score
-					break BENCH
-				default:
-					score += worker.Process()
-				}
+			for atomic.LoadInt32(&stopFlag) == 0 {
+				score += worker.Process()
 			}
+			scoreCh <- score
 			debugLog("worker[%d] done Benchmark() score: %d", n, score)
 			worker.Teardown()
 			debugLog("worker[%d] exit", n)
@@ -128,7 +123,7 @@ func Run(workers []Worker, duration time.Duration) *Result {
 	}
 
 	// notify "stop" to workers
-	close(stopCh)
+	atomic.StoreInt32(&stopFlag, 1)
 
 	// collect scores from workers
 	totalScore := 0
